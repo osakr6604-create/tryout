@@ -66,6 +66,12 @@ func music(track: StringName, fade: float = 0.6) -> void:
 	if stream == null:
 		_music.stop()
 		return
+	if stream is AudioStreamWAV:
+		# The loop points are set here rather than trusted to the importer.
+		var wav := stream as AudioStreamWAV
+		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		wav.loop_begin = 0
+		wav.loop_end = int(wav.get_length() * float(wav.mix_rate))
 	_music.stream = stream
 	_music.volume_db = -40.0
 	_music.play()

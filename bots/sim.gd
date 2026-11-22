@@ -1,7 +1,8 @@
 class_name Sim
 extends RefCounted
 ## Runs drills and whole sessions without a window, as fast as the CPU allows.
-## The tests, the balance report and the soak test all go through here.
+## The tests and the balance report go through here, and so does the demo
+## data a booth can load to show a full leaderboard before the doors open.
 
 const DT := 1.0 / 120.0
 const MAX_SECONDS := 30.0

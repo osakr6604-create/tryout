@@ -176,11 +176,11 @@ func _track(dt: float) -> void:
 	_noise_in -= dt
 	if _noise_in <= 0.0:
 		_noise_in = rng.randf_range(0.2, 0.45)
-		_noise_goal = Vector2.from_angle(rng.randf() * TAU) * rng.randf() * lerpf(95.0, 14.0, skill)
+		_noise_goal = Vector2.from_angle(rng.randf() * TAU) * rng.randf() * lerpf(90.0, 12.0, skill)
 	_noise = _noise.lerp(_noise_goal, clampf(dt * 6.0, 0.0, 1.0))
 	if m.t < reaction():
 		return
-	var lag := lerpf(0.21, 0.045, skill)
+	var lag := lerpf(0.19, 0.04, skill)
 	cursor = cursor.lerp(m.pos + _noise, 1.0 - exp(-dt / lag))
 
 

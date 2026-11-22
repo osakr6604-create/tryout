@@ -27,6 +27,7 @@ func _setup() -> void:
 	# The length depends on the delays and on how fast the player is.
 	# This is only a ceiling; the drill ends after the third trial.
 	duration = 14.0
+	timed = false
 	trial = 0
 	times_ms.clear()
 	last_ms = 0

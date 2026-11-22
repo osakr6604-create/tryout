@@ -12,6 +12,7 @@ var id: StringName = &"drill"
 var title: String = "DRILL"
 var hint: String = ""
 var duration: float = 6.0
+var timed: bool = true           ## false when the drill ends on its own count, not on a clock
 var field: Rect2 = Rect2(0, 0, 1920, 1080)
 var rng: RandomNumberGenerator
 var t: float = 0.0

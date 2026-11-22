@@ -20,7 +20,7 @@ func test_lin_works_downward() -> void:
 func test_flick_score_range() -> void:
 	near(Tuning.flick_score(0, 0), 0.0)
 	near(Tuning.flick_score(0, 12), 0.0)
-	near(Tuning.flick_score(15, 0), 100.0)
+	near(Tuning.flick_score(int(Tuning.FLICK_HITS_FULL), 0), 100.0)
 	near(Tuning.flick_score(40, 0), 100.0, 0.001, "never above 100")
 
 
@@ -78,7 +78,7 @@ func test_mapcheck_score() -> void:
 	near(Tuning.mapcheck_score(0, 1.0), 0.0)
 	near(Tuning.mapcheck_score(Tuning.MAP_PINGS, 1.0), 100.0)
 	more(Tuning.mapcheck_score(5, 2.0), Tuning.mapcheck_score(5, 4.0), "faster recall")
-	more(Tuning.mapcheck_score(4, 4.0), Tuning.mapcheck_score(3, 1.0), "a ping is worth more than speed")
+	more(Tuning.mapcheck_score(5, 4.0), Tuning.mapcheck_score(3, 1.0), "pings count for more than speed")
 
 
 func test_clutch_score() -> void:

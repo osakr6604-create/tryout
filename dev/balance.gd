@@ -24,13 +24,16 @@ func _run() -> void:
 	print("skill   mean total   grades over 80 runs")
 	for s in skills:
 		var counts: Dictionary = {}
+		var roles: Dictionary = {}
 		var sum := 0
 		for i in 80:
 			var run := Sim.session(s, 1000 + i)
 			sum += run.total()
 			counts[run.grade()] = int(counts.get(run.grade(), 0)) + 1
+			roles[run.role()] = int(roles.get(run.role(), 0)) + 1
 		var spread := ""
 		for row: Dictionary in Tuning.GRADES:
 			spread += "  %s:%d" % [row["grade"], int(counts.get(row["grade"], 0))]
 		print("%5.1f   %10d  %s" % [s, sum / 80, spread])
+		print("        roles: %s" % str(roles))
 	quit(0)

@@ -25,17 +25,17 @@ const IDLE_ABORT_SECONDS := 12.0   ## no input mid-run for this long: abandon it
 const FLICK_SECONDS := 6.0
 const FLICK_RADIUS := 44.0
 const FLICK_DISTANCES: Array[float] = [360.0, 500.0, 640.0, 780.0]
-const FLICK_HITS_ZERO := 3.0       ## this many hits or fewer scores 0
-const FLICK_HITS_FULL := 15.0      ## this many hits scores 100 (at 100% accuracy)
+const FLICK_HITS_ZERO := 2.0       ## this many hits or fewer scores 0
+const FLICK_HITS_FULL := 14.0      ## this many hits scores 100 (at 100% accuracy)
 
 # ---- Track ----
 const TRACK_SECONDS := 6.0
-const TRACK_RADIUS := 62.0
+const TRACK_RADIUS := 60.0
 const TRACK_GRACE := 0.55          ## time to find the target before it counts
-const TRACK_SPEED_START := 360.0
-const TRACK_SPEED_END := 640.0
+const TRACK_SPEED_START := 380.0
+const TRACK_SPEED_END := 660.0
 const TRACK_FRAC_ZERO := 0.12
-const TRACK_FRAC_FULL := 0.85
+const TRACK_FRAC_FULL := 0.93
 
 # ---- React ----
 const REACT_TRIALS := 3
@@ -50,12 +50,12 @@ const REACT_MS_ZERO := 430.0       ## this slow scores 0
 const HOLD_COUNT := 8
 const HOLD_ENEMIES := 5
 const HOLD_RADIUS := 66.0
-const HOLD_LIFE_START := 0.9       ## how long the first enemy stays up
-const HOLD_LIFE_END := 0.62        ## and the last one
-const HOLD_ALLY_LIFE := 0.62       ## teammates leave sooner, so holding does not drag
+const HOLD_LIFE_START := 0.82      ## how long the first enemy stays up
+const HOLD_LIFE_END := 0.56        ## and the last one
+const HOLD_ALLY_LIFE := 0.58       ## teammates leave sooner, so holding does not drag
 const HOLD_GAP := 0.12
-const HOLD_RT_FAST := 0.38
-const HOLD_RT_SLOW := 0.72
+const HOLD_RT_FAST := 0.34
+const HOLD_RT_SLOW := 0.64
 const HOLD_FRIENDLY_PENALTY := 30.0
 const HOLD_WHIFF_PENALTY := 3.0
 
@@ -63,9 +63,9 @@ const HOLD_WHIFF_PENALTY := 3.0
 const LASTHIT_SECONDS := 6.2
 const LASTHIT_LANES := 4
 const LASTHIT_TOTAL := 7
-const LASTHIT_KILL_ZONE := 0.22    ## the bar turns gold below this share of HP
+const LASTHIT_KILL_ZONE := 0.2     ## the bar turns gold below this share of HP
 const LASTHIT_ZONE_STARTS: Array[float] = [1.0, 1.72, 2.42, 3.1, 3.76, 4.42, 5.05]
-const LASTHIT_DRAINS: Array[float] = [1.3, 1.45, 1.6, 1.75, 1.9, 1.5, 1.7]
+const LASTHIT_DRAINS: Array[float] = [1.25, 1.4, 1.55, 1.7, 1.85, 1.35, 1.6]
 const LASTHIT_EARLY_LOCK := 0.45
 const LASTHIT_EARLY_PENALTY := 4.0
 
@@ -81,14 +81,14 @@ const SKILL_SHOT_SPEED := 1900.0
 const SKILL_COOLDOWN := 0.4
 
 # ---- Map check ----
-const MAP_SECONDS := 6.4
+const MAP_SECONDS := 6.6
 const MAP_GRID := 5
-const MAP_PINGS := 5
+const MAP_PINGS := 6
 const MAP_FIRST_PING := 0.3
-const MAP_PING_STEP := 0.24
-const MAP_SHOW_UNTIL := 2.0
-const MAP_RECALL_FAST := 1.6
-const MAP_RECALL_SLOW := 4.2
+const MAP_PING_STEP := 0.2
+const MAP_SHOW_UNTIL := 1.9
+const MAP_RECALL_FAST := 1.9
+const MAP_RECALL_SLOW := 4.4
 
 # ---- Clutch ----
 const CLUTCH_ENEMIES := 4
@@ -140,7 +140,7 @@ static func react_trial_score(ms: int) -> float:
 static func holdfire_score(hits: int, friendly: int, whiffs: int, avg_rt: float) -> float:
 	var accuracy := minf(1.0, float(hits) / float(HOLD_ENEMIES))
 	var speed := lin(avg_rt, HOLD_RT_SLOW, HOLD_RT_FAST) if hits > 0 else 0.0
-	var raw := accuracy * (85.0 + 15.0 * speed)
+	var raw := accuracy * (70.0 + 30.0 * speed)
 	raw -= float(friendly) * HOLD_FRIENDLY_PENALTY
 	raw -= float(whiffs) * HOLD_WHIFF_PENALTY
 	return clampf(raw, 0.0, 100.0)
@@ -163,7 +163,7 @@ static func mapcheck_score(correct: int, recall_seconds: float) -> float:
 	if correct <= 0:
 		return 0.0
 	var speed := lin(recall_seconds, MAP_RECALL_SLOW, MAP_RECALL_FAST)
-	return clampf(float(correct) / float(MAP_PINGS) * (86.0 + 14.0 * speed), 0.0, 100.0)
+	return clampf(float(correct) / float(MAP_PINGS) * (70.0 + 30.0 * speed), 0.0, 100.0)
 
 
 static func clutch_score(kills: int, avg_ttk: float) -> float:

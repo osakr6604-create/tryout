@@ -38,7 +38,7 @@ func test_every_weight_names_a_real_drill() -> void:
 		check(Rating.STRENGTHS.has(attr) and Rating.WEAKNESSES.has(attr), "no note text for %s" % attr)
 		var sum := 0.0
 		for source: StringName in Rating.WEIGHTS[attr]:
-			check(source == &"react_clean" or Tuning.DRILL_ORDER.has(source), "%s is not a drill" % source)
+			check(Tuning.DRILL_ORDER.has(source), "%s is not a drill" % source)
 			sum += float(Rating.WEIGHTS[attr][source])
 		near(sum, 1.0, 0.0001, "weights of %s" % attr)
 

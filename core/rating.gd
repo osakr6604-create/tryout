@@ -7,14 +7,13 @@ const ATTRS: Array[StringName] = [
 	&"REFLEX", &"PRECISION", &"TRACKING", &"TIMING", &"DISCIPLINE", &"AWARENESS",
 ]
 
-## Which drills feed which attribute, and how much. "react_clean" is not a
-## drill: it is 100 when the reaction drill had no false starts.
+## Which drills feed which attribute, and how much.
 const WEIGHTS: Dictionary = {
 	&"REFLEX": {&"react": 0.75, &"clutch": 0.25},
 	&"PRECISION": {&"flick": 0.7, &"clutch": 0.3},
 	&"TRACKING": {&"track": 0.8, &"skillshot": 0.2},
 	&"TIMING": {&"lasthit": 0.65, &"skillshot": 0.35},
-	&"DISCIPLINE": {&"holdfire": 0.8, &"react_clean": 0.2},
+	&"DISCIPLINE": {&"holdfire": 1.0},
 	&"AWARENESS": {&"mapcheck": 0.75, &"lasthit": 0.25},
 }
 
@@ -54,6 +53,7 @@ const VERDICTS: Dictionary = {
 	"D": "Great attitude.",
 }
 const WEAK_BELOW := 55
+const FALSE_START_COST := 12   ## each early click in the reaction drill takes this off DISCIPLINE
 
 
 ## Total points, 0 to 10,000.
@@ -73,10 +73,14 @@ static func _scores(results: Array[DrillResult]) -> Dictionary:
 	var by_id: Dictionary = {}
 	for r in results:
 		by_id[r.id] = r.score
-		if r.id == &"react":
-			var early := int(r.metrics.get("false_starts", 0))
-			by_id[&"react_clean"] = clampf(100.0 - 50.0 * float(early), 0.0, 100.0)
 	return by_id
+
+
+static func _false_starts(results: Array[DrillResult]) -> int:
+	for r in results:
+		if r.id == &"react":
+			return int(r.metrics.get("false_starts", 0))
+	return 0
 
 
 ## Attribute name to a 0..99 value.
@@ -92,6 +96,8 @@ static func attributes(results: Array[DrillResult]) -> Dictionary:
 				sum += float(by_id[source]) * float(weights[source])
 				weight_sum += float(weights[source])
 		var value := sum / weight_sum if weight_sum > 0.0 else 0.0
+		if attr == &"DISCIPLINE":
+			value -= float(FALSE_START_COST * _false_starts(results))
 		out[attr] = clampi(int(round(value)), 0, 99)
 	return out
 
