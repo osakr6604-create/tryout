@@ -122,6 +122,10 @@ func _fill_demo_board(count: int) -> void:
 	Board.last_entry = {}
 
 
+func _exit_tree() -> void:
+	Look.release()
+
+
 # ---- display ----
 
 func _apply_display() -> void:

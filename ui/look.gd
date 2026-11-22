@@ -38,6 +38,14 @@ static func accent() -> Color:
 	return Config.accent
 
 
+## Drops the cached fonts and textures. Called once as the game closes, so the
+## engine can shut down with nothing left in use.
+static func release() -> void:
+	_fonts.clear()
+	_soft = null
+	_box = null
+
+
 static func font(kind: StringName) -> Font:
 	if not _fonts.has(kind):
 		_fonts[kind] = load(str(FONT_FILES[kind]))

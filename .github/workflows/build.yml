@@ -1,0 +1,107 @@
+name: Build
+
+# On every push to main: run the tests and the soak check, export the Windows,
+# Linux and Web builds, and publish the web build and the card page to GitHub
+# Pages. On a version tag (v1.0.0) the builds are also attached to a release.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths-ignore:
+      - "**.md"
+      - "media/**"
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Test, soak and export
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Cache Godot and its export templates
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/godot-editor
+            ~/.local/share/godot/export_templates
+          key: godot-4.7.2-stable-tryout-v1
+
+      - name: Install Godot
+        run: bash tools/ci/install-godot.sh
+
+      - name: Tests
+        run: bash tools/test.sh
+
+      - name: Soak (150 sessions back to back)
+        run: bash tools/soak.sh 150
+
+      - name: Export Windows, Linux and Web
+        run: bash tools/export.sh
+
+      - name: Assemble the site
+        run: bash tools/build-site.sh
+
+      - name: Zip the desktop builds
+        run: |
+          cd build
+          zip -r -q Tryout-windows.zip windows
+          zip -r -q Tryout-linux.zip linux
+          ls -l *.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tryout-builds
+          path: |
+            build/Tryout-windows.zip
+            build/Tryout-linux.zip
+          retention-days: 30
+          if-no-files-found: error
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: build/site
+
+  pages:
+    name: Publish the web build
+    needs: build
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5
+
+  release:
+    name: Attach builds to the release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: tryout-builds
+          path: dist
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "Tryout $GITHUB_REF_NAME" --notes "Windows and Linux builds. The web build is on the GitHub Pages address of this repository."
+          fi
+          gh release upload "$GITHUB_REF_NAME" dist/*.zip --repo "$GITHUB_REPOSITORY" --clobber

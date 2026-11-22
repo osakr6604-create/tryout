@@ -10,8 +10,11 @@ TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$TOOLS_DIR/.." && pwd)"
 SITE="$REPO_DIR/build/site"
 
-rm -rf "$SITE"
-mkdir -p "$SITE/card" "$SITE/fonts" "$REPO_DIR/build"
+# Empty the folder rather than remove it: a local preview server may be
+# running from inside it.
+mkdir -p "$SITE" "$REPO_DIR/build"
+find "$SITE" -mindepth 1 -delete
+mkdir -p "$SITE/card" "$SITE/fonts"
 touch "$REPO_DIR/build/.gdignore"
 
 if [ -f "$REPO_DIR/build/web/index.html" ]; then

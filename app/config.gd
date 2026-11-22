@@ -46,6 +46,15 @@ func _parse_flags() -> void:
 			flags[body] = "true"
 		else:
 			flags[body.substr(0, eq)] = body.substr(eq + 1)
+	# In a browser the same flags come from the address, e.g. ?autoplay&skill=0.8
+	if OS.has_feature("web"):
+		var query := str(JavaScriptBridge.eval("window.location.search", true))
+		for part in query.trim_prefix("?").split("&", false):
+			var eq := part.find("=")
+			if eq < 0:
+				flags[part.uri_decode()] = "true"
+			else:
+				flags[part.substr(0, eq).uri_decode()] = part.substr(eq + 1).uri_decode()
 
 
 func has_flag(flag_name: String) -> bool:
