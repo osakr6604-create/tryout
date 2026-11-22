@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tryout scouting card</title>
+<meta name="description" content="A scouting card from Tryout, the 60-second esports tryout.">
+<meta property="og:title" content="My Tryout scouting card">
+<meta property="og:description" content="60 seconds. 8 drills. One scouting report.">
+<meta name="theme-color" content="#070B17">
+<style>
+@font-face { font-family: "Barlow Condensed"; src: url("../fonts/BarlowCondensed-ExtraBoldItalic.ttf"); font-weight: 800; font-style: italic; font-display: swap; }
+@font-face { font-family: "Barlow Condensed"; src: url("../fonts/BarlowCondensed-SemiBold.ttf"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("../fonts/JetBrainsMono-ExtraBold.ttf"); font-weight: 800; font-display: swap; }
+:root { --bg: #070B17; --lift: #0E1630; --ink: #F4F8FF; --dim: #8FA3C8; --sky: #2EC5FF; --gold: #FFC83D; --good: #3DFFB0; --violet: #9B6BFF; --hot: #FF5A4D; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: radial-gradient(1200px 700px at 15% 0%, rgba(46,197,255,.16), transparent 60%), radial-gradient(900px 700px at 100% 100%, rgba(155,107,255,.14), transparent 60%), linear-gradient(var(--bg), var(--lift)); color: var(--ink); font-family: "Barlow Condensed", "Arial Narrow", Arial, sans-serif; font-weight: 600; display: flex; justify-content: center; padding: 20px 16px 40px; }
+main { width: 100%; max-width: 440px; }
+.brand { font-weight: 800; font-style: italic; font-size: 34px; letter-spacing: .5px; display: flex; justify-content: space-between; align-items: baseline; }
+.brand small { font-style: normal; font-weight: 600; font-size: 16px; color: var(--sky); letter-spacing: 1px; }
+.card { margin-top: 12px; border: 1px solid rgba(46,197,255,.35); border-radius: 22px; background: rgba(14,22,46,.9); padding: 22px 22px 18px; box-shadow: 0 20px 60px rgba(0,0,0,.45); }
+.label { color: var(--dim); font-size: 15px; letter-spacing: 1.5px; }
+.tag { font-weight: 800; font-style: italic; font-size: 64px; line-height: 1; margin: 4px 0 10px; overflow-wrap: anywhere; }
+.row { display: flex; gap: 14px; align-items: stretch; }
+.stat { flex: 1; }
+.num { font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; font-weight: 800; }
+.overall { font-size: 76px; line-height: 1; }
+.score { font-size: 26px; color: var(--gold); margin-top: 4px; white-space: nowrap; }
+.grade { width: 124px; height: 132px; align-self: center; border-radius: 22px; border: 5px solid var(--sky); display: flex; flex-direction: column; align-items: center; justify-content: center; transform: rotate(-7deg); margin: 2px 6px 6px 0; }
+.grade b { font-weight: 800; font-style: italic; font-size: 82px; line-height: .95; }
+.grade span { font-size: 14px; letter-spacing: 2px; }
+.role { margin: 16px 0 6px; background: var(--sky); color: var(--bg); border-radius: 14px; padding: 9px 16px; display: flex; justify-content: space-between; align-items: baseline; }
+.role small { font-size: 13px; letter-spacing: 1.5px; opacity: .75; }
+.role b { font-weight: 800; font-style: italic; font-size: 34px; }
+svg { display: block; width: 100%; height: auto; margin-top: 6px; }
+.attr-label { fill: var(--dim); font-size: 15px; letter-spacing: 1px; font-family: "Barlow Condensed", "Arial Narrow", Arial, sans-serif; font-weight: 600; }
+.attr-value { font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; font-weight: 800; font-size: 20px; }
+.note { margin-top: 6px; font-size: 21px; line-height: 1.25; }
+.actions { display: flex; gap: 10px; margin-top: 16px; }
+button, .button { flex: 1; text-align: center; text-decoration: none; font: inherit; font-weight: 800; font-style: italic; font-size: 24px; border-radius: 14px; padding: 12px 10px; border: 2px solid var(--sky); background: transparent; color: var(--sky); cursor: pointer; }
+.button.primary { background: var(--sky); color: var(--bg); }
+footer { color: var(--dim); font-size: 15px; margin-top: 16px; text-align: center; line-height: 1.4; }
+.empty { text-align: center; padding: 30px 4px; font-size: 22px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><span>TRYOUT</span><small>SCOUTING CARD</small></div>
+  <div class="card" id="card"></div>
+  <div class="actions" id="actions" hidden>
+    <button id="share" type="button">SHARE</button>
+    <a class="button primary" href="../">PLAY IT</a>
+  </div>
+  <footer>60 seconds. 8 drills. One scouting report.<br>This card lives in its link. Nothing about you is stored on a server.</footer>
+</main>
+<script>
+(function () {
+  "use strict";
+  var GRADES = ["S+", "S", "A", "B", "C", "D"];
+  var GRADE_COLORS = { "S+": "#FFC83D", "S": "#3DFFB0", "A": "#2EC5FF", "B": "#9B6BFF", "C": "#8FA3C8", "D": "#FF5A4D" };
+  var ROLES = ["ENTRY", "MARKSMAN", "RIFLER", "PLAYMAKER", "ANCHOR", "SHOTCALLER", "FLEX"];
+  var ATTRS = ["REFLEX", "PRECISION", "TRACKING", "TIMING", "DISCIPLINE", "AWARENESS"];
+  var STRENGTHS = ["Lightning first shot.", "Clean, confident aim.", "Glued to moving targets.", "Reads the tempo of a fight.", "Ice cold under pressure.", "Sees the whole map."];
+  var WEAKNESSES = ["Needs a faster trigger.", "Aim needs reps.", "Loses moving targets.", "Timing is a beat off.", "Trigger discipline needs work.", "Tunnel vision on the map."];
+  var VERDICTS = { "S+": "Sign immediately.", "S": "Starter material.", "A": "Call them back.", "B": "Academy prospect.", "C": "Keep grinding.", "D": "Great attitude." };
+
+  function clamp(n, lo, hi) { n = parseInt(n, 10); if (isNaN(n)) n = lo; return Math.max(lo, Math.min(hi, n)); }
+
+  // The link carries the whole card: #1.<tag>.<score>.<grade>.<role>.<six attributes>
+  function parse(hash) {
+    var parts = (hash || "").replace(/^#/, "").split(".");
+    if (parts.length !== 11 || parts[0] !== "1") return null;
+    var tag = parts[1].toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 10);
+    if (!tag) return null;
+    var attrs = [];
+    for (var i = 5; i < 11; i++) attrs.push(clamp(parts[i], 0, 99));
+    return { tag: tag, score: clamp(parts[2], 0, 10000), grade: GRADES[clamp(parts[3], 0, 5)], role: ROLES[clamp(parts[4], 0, 6)], attrs: attrs };
+  }
+
+  function note(card) {
+    var hi = 0, lo = 0;
+    for (var i = 1; i < 6; i++) { if (card.attrs[i] > card.attrs[hi]) hi = i; if (card.attrs[i] < card.attrs[lo]) lo = i; }
+    var parts = [];
+    if (card.role === "FLEX") { parts.push("Balanced toolkit, no clear weakness."); }
+    else { parts.push(STRENGTHS[hi]); if (card.attrs[lo] < 55) parts.push(WEAKNESSES[lo]); }
+    parts.push(VERDICTS[card.grade]);
+    return parts.join(" ");
+  }
+
+  function el(name, attrs, text) {
+    var node = document.createElementNS(name === "svg" || attrs && attrs.__svg ? "http://www.w3.org/2000/svg" : "http://www.w3.org/1999/xhtml", name);
+    for (var key in attrs) if (key !== "__svg") node.setAttribute(key, attrs[key]);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+  function svg(name, attrs, text) { attrs = attrs || {}; attrs.__svg = true; return el(name, attrs, text); }
+
+  function radar(card) {
+    var cx = 200, cy = 150, r = 96;
+    var root = svg("svg", { viewBox: "0 0 400 300", role: "img", "aria-label": "Attribute chart" });
+    function point(i, k) { var a = -Math.PI / 2 + Math.PI * 2 * i / 6; return [cx + Math.cos(a) * r * k, cy + Math.sin(a) * r * k]; }
+    for (var ring = 1; ring <= 4; ring++) {
+      var pts = [];
+      for (var i = 0; i < 6; i++) pts.push(point(i, ring / 4).join(","));
+      root.appendChild(svg("polygon", { points: pts.join(" "), fill: "none", stroke: "rgba(244,248,255," + (ring === 4 ? 0.3 : 0.1) + ")", "stroke-width": 1 }));
+    }
+    var shape = [];
+    for (var j = 0; j < 6; j++) {
+      var edge = point(j, 1);
+      root.appendChild(svg("line", { x1: cx, y1: cy, x2: edge[0], y2: edge[1], stroke: "rgba(244,248,255,.1)", "stroke-width": 1 }));
+      shape.push(point(j, Math.max(0.04, card.attrs[j] / 99)).join(","));
+      var label = point(j, 1.36);
+      root.appendChild(svg("text", { x: label[0], y: label[1] - 4, "text-anchor": "middle", "class": "attr-label" }, ATTRS[j]));
+      root.appendChild(svg("text", { x: label[0], y: label[1] + 16, "text-anchor": "middle", "class": "attr-value", fill: "#F4F8FF" }, String(card.attrs[j])));
+    }
+    root.appendChild(svg("polygon", { points: shape.join(" "), fill: "rgba(46,197,255,.3)", stroke: "#2EC5FF", "stroke-width": 3, "stroke-linejoin": "round" }));
+    return root;
+  }
+
+  function render() {
+    var card = parse(location.hash);
+    var box = document.getElementById("card");
+    box.textContent = "";
+    if (!card) {
+      var empty = el("div", { "class": "empty" }, "There is no card in this link. Play a round of Tryout and scan the code on the report screen to get yours.");
+      box.appendChild(empty);
+      document.getElementById("actions").hidden = false;
+      document.getElementById("share").hidden = true;
+      return;
+    }
+    document.title = card.tag + " | Tryout scouting card";
+    box.appendChild(el("div", { "class": "label" }, "PROSPECT"));
+    box.appendChild(el("div", { "class": "tag" }, card.tag));
+
+    var row = el("div", { "class": "row" });
+    var stat = el("div", { "class": "stat" });
+    stat.appendChild(el("div", { "class": "label" }, "OVERALL"));
+    stat.appendChild(el("div", { "class": "num overall" }, String(Math.min(99, Math.round(card.score / 100))).padStart(2, "0")));
+    stat.appendChild(el("div", { "class": "num score" }, card.score.toLocaleString("en-US") + " PTS"));
+    row.appendChild(stat);
+    var grade = el("div", { "class": "grade", style: "border-color:" + GRADE_COLORS[card.grade] + ";color:" + GRADE_COLORS[card.grade] });
+    grade.appendChild(el("b", {}, card.grade));
+    grade.appendChild(el("span", {}, "GRADE"));
+    row.appendChild(grade);
+    box.appendChild(row);
+
+    var role = el("div", { "class": "role" });
+    role.appendChild(el("small", {}, "ROLE FIT"));
+    role.appendChild(el("b", {}, card.role));
+    box.appendChild(role);
+    box.appendChild(radar(card));
+    box.appendChild(el("div", { "class": "label" }, "SCOUT'S NOTE"));
+    box.appendChild(el("div", { "class": "note" }, note(card)));
+    document.getElementById("actions").hidden = false;
+  }
+
+  document.getElementById("share").addEventListener("click", function () {
+    var data = { title: "My Tryout scouting card", text: "I got scouted in 60 seconds.", url: location.href };
+    if (navigator.share) { navigator.share(data).catch(function () {}); return; }
+    var button = this;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(location.href).then(function () { button.textContent = "LINK COPIED"; setTimeout(function () { button.textContent = "SHARE"; }, 1800); });
+    }
+  });
+  window.addEventListener("hashchange", render);
+  render();
+})();
+</script>
+</body>
+</html>

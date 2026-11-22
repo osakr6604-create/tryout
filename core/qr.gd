@@ -49,25 +49,33 @@ static func encode(text: String) -> Array:
 		return []
 	var codewords := _interleave(_data_codewords(bytes, version), version)
 	var size := 17 + 4 * version
-	var modules := _grid(size)
-	var reserved := _grid(size)
-	_draw_function_patterns(modules, reserved, version)
-	_draw_codewords(modules, reserved, codewords)
+	# Both grids are flat, row after row. "reserved" marks the fixed patterns,
+	# which data and masks must leave alone.
+	var modules := PackedByteArray()
+	modules.resize(size * size)
+	var reserved := PackedByteArray()
+	reserved.resize(size * size)
+	_draw_function_patterns(modules, reserved, size, version)
+	_draw_codewords(modules, reserved, size, codewords)
 
 	# Try all eight masks and keep the one a scanner will find easiest.
 	var best_mask := 0
 	var best_penalty := -1
 	for mask in 8:
-		_apply_mask(modules, reserved, mask)
-		_draw_format(modules, reserved, mask)
-		var penalty := _penalty(modules)
+		_apply_mask(modules, reserved, size, mask)
+		_draw_format(modules, reserved, size, mask)
+		var penalty := _penalty(modules, size)
 		if best_penalty < 0 or penalty < best_penalty:
 			best_penalty = penalty
 			best_mask = mask
-		_apply_mask(modules, reserved, mask)   # masking twice undoes it
-	_apply_mask(modules, reserved, best_mask)
-	_draw_format(modules, reserved, best_mask)
-	return modules
+		_apply_mask(modules, reserved, size, mask)   # masking twice undoes it
+	_apply_mask(modules, reserved, size, best_mask)
+	_draw_format(modules, reserved, size, best_mask)
+
+	var rows: Array = []
+	for y in size:
+		rows.append(modules.slice(y * size, (y + 1) * size))
+	return rows
 
 
 # ---- data ----
@@ -164,28 +172,18 @@ static func _rs_remainder(data: PackedByteArray, divisor: PackedByteArray) -> Pa
 
 # ---- the grid ----
 
-static func _grid(size: int) -> Array:
-	var rows: Array = []
-	for y in size:
-		var row := PackedByteArray()
-		row.resize(size)
-		rows.append(row)
-	return rows
+static func _put(modules: PackedByteArray, reserved: PackedByteArray, size: int, x: int, y: int, dark: bool) -> void:
+	modules[y * size + x] = 1 if dark else 0
+	reserved[y * size + x] = 1
 
 
-static func _put(modules: Array, reserved: Array, x: int, y: int, dark: bool) -> void:
-	(modules[y] as PackedByteArray)[x] = 1 if dark else 0
-	(reserved[y] as PackedByteArray)[x] = 1
-
-
-static func _draw_function_patterns(modules: Array, reserved: Array, version: int) -> void:
-	var size := modules.size()
+static func _draw_function_patterns(modules: PackedByteArray, reserved: PackedByteArray, size: int, version: int) -> void:
 	for i in size:
-		_put(modules, reserved, 6, i, i % 2 == 0)
-		_put(modules, reserved, i, 6, i % 2 == 0)
-	_draw_finder(modules, reserved, 3, 3)
-	_draw_finder(modules, reserved, size - 4, 3)
-	_draw_finder(modules, reserved, 3, size - 4)
+		_put(modules, reserved, size, 6, i, i % 2 == 0)
+		_put(modules, reserved, size, i, 6, i % 2 == 0)
+	_draw_finder(modules, reserved, size, 3, 3)
+	_draw_finder(modules, reserved, size, size - 4, 3)
+	_draw_finder(modules, reserved, size, 3, size - 4)
 	var centers: Array = ALIGNMENT[version]
 	var last := centers.size() - 1
 	for i in centers.size():
@@ -193,13 +191,12 @@ static func _draw_function_patterns(modules: Array, reserved: Array, version: in
 			# The three corners with finder patterns do not get one.
 			if (i == 0 and j == 0) or (i == 0 and j == last) or (i == last and j == 0):
 				continue
-			_draw_alignment(modules, reserved, int(centers[i]), int(centers[j]))
-	_draw_format(modules, reserved, 0)
-	_draw_version(modules, reserved, version)
+			_draw_alignment(modules, reserved, size, int(centers[i]), int(centers[j]))
+	_draw_format(modules, reserved, size, 0)
+	_draw_version(modules, reserved, size, version)
 
 
-static func _draw_finder(modules: Array, reserved: Array, cx: int, cy: int) -> void:
-	var size := modules.size()
+static func _draw_finder(modules: PackedByteArray, reserved: PackedByteArray, size: int, cx: int, cy: int) -> void:
 	for dy in range(-4, 5):
 		for dx in range(-4, 5):
 			var x := cx + dx
@@ -207,13 +204,13 @@ static func _draw_finder(modules: Array, reserved: Array, cx: int, cy: int) -> v
 			if x < 0 or x >= size or y < 0 or y >= size:
 				continue
 			var dist := maxi(absi(dx), absi(dy))
-			_put(modules, reserved, x, y, dist != 2 and dist != 4)
+			_put(modules, reserved, size, x, y, dist != 2 and dist != 4)
 
 
-static func _draw_alignment(modules: Array, reserved: Array, cx: int, cy: int) -> void:
+static func _draw_alignment(modules: PackedByteArray, reserved: PackedByteArray, size: int, cx: int, cy: int) -> void:
 	for dy in range(-2, 3):
 		for dx in range(-2, 3):
-			_put(modules, reserved, cx + dx, cy + dy, maxi(absi(dx), absi(dy)) != 1)
+			_put(modules, reserved, size, cx + dx, cy + dy, maxi(absi(dx), absi(dy)) != 1)
 
 
 static func _format_bits(mask: int) -> int:
@@ -224,21 +221,20 @@ static func _format_bits(mask: int) -> int:
 	return ((data << 10) | rem) ^ 0x5412
 
 
-static func _draw_format(modules: Array, reserved: Array, mask: int) -> void:
-	var size := modules.size()
+static func _draw_format(modules: PackedByteArray, reserved: PackedByteArray, size: int, mask: int) -> void:
 	var bits := _format_bits(mask)
 	for i in range(0, 6):
-		_put(modules, reserved, 8, i, ((bits >> i) & 1) != 0)
-	_put(modules, reserved, 8, 7, ((bits >> 6) & 1) != 0)
-	_put(modules, reserved, 8, 8, ((bits >> 7) & 1) != 0)
-	_put(modules, reserved, 7, 8, ((bits >> 8) & 1) != 0)
+		_put(modules, reserved, size, 8, i, ((bits >> i) & 1) != 0)
+	_put(modules, reserved, size, 8, 7, ((bits >> 6) & 1) != 0)
+	_put(modules, reserved, size, 8, 8, ((bits >> 7) & 1) != 0)
+	_put(modules, reserved, size, 7, 8, ((bits >> 8) & 1) != 0)
 	for i in range(9, 15):
-		_put(modules, reserved, 14 - i, 8, ((bits >> i) & 1) != 0)
+		_put(modules, reserved, size, 14 - i, 8, ((bits >> i) & 1) != 0)
 	for i in range(0, 8):
-		_put(modules, reserved, size - 1 - i, 8, ((bits >> i) & 1) != 0)
+		_put(modules, reserved, size, size - 1 - i, 8, ((bits >> i) & 1) != 0)
 	for i in range(8, 15):
-		_put(modules, reserved, 8, size - 15 + i, ((bits >> i) & 1) != 0)
-	_put(modules, reserved, 8, size - 8, true)
+		_put(modules, reserved, size, 8, size - 15 + i, ((bits >> i) & 1) != 0)
+	_put(modules, reserved, size, 8, size - 8, true)
 
 
 static func _version_bits(version: int) -> int:
@@ -248,23 +244,21 @@ static func _version_bits(version: int) -> int:
 	return (version << 12) | rem
 
 
-static func _draw_version(modules: Array, reserved: Array, version: int) -> void:
+static func _draw_version(modules: PackedByteArray, reserved: PackedByteArray, size: int, version: int) -> void:
 	if version < 7:
 		return
-	var size := modules.size()
 	var bits := _version_bits(version)
 	for i in 18:
 		var dark := ((bits >> i) & 1) != 0
 		var a := size - 11 + i % 3
 		var b := i / 3
-		_put(modules, reserved, a, b, dark)
-		_put(modules, reserved, b, a, dark)
+		_put(modules, reserved, size, a, b, dark)
+		_put(modules, reserved, size, b, a, dark)
 
 
 ## Lays the codewords down in the zigzag the standard asks for: two columns at
 ## a time from the right edge, going up, then down, skipping the timing column.
-static func _draw_codewords(modules: Array, reserved: Array, data: PackedByteArray) -> void:
-	var size := modules.size()
+static func _draw_codewords(modules: PackedByteArray, reserved: PackedByteArray, size: int, data: PackedByteArray) -> void:
 	var i := 0
 	var total := data.size() * 8
 	var right := size - 1
@@ -276,8 +270,8 @@ static func _draw_codewords(modules: Array, reserved: Array, data: PackedByteArr
 				var x := right - j
 				var upward := ((right + 1) & 2) == 0
 				var y := size - 1 - vert if upward else vert
-				if (reserved[y] as PackedByteArray)[x] == 0 and i < total:
-					(modules[y] as PackedByteArray)[x] = (data[i >> 3] >> (7 - (i & 7))) & 1
+				if reserved[y * size + x] == 0 and i < total:
+					modules[y * size + x] = (data[i >> 3] >> (7 - (i & 7))) & 1
 					i += 1
 		right -= 2
 
@@ -301,37 +295,32 @@ static func _mask_hits(mask: int, x: int, y: int) -> bool:
 	return ((x + y) % 2 + x * y % 3) % 2 == 0
 
 
-static func _apply_mask(modules: Array, reserved: Array, mask: int) -> void:
-	var size := modules.size()
+static func _apply_mask(modules: PackedByteArray, reserved: PackedByteArray, size: int, mask: int) -> void:
 	for y in size:
-		var row: PackedByteArray = modules[y]
-		var locked: PackedByteArray = reserved[y]
 		for x in size:
-			if locked[x] == 0 and _mask_hits(mask, x, y):
-				row[x] = row[x] ^ 1
+			var at := y * size + x
+			if reserved[at] == 0 and _mask_hits(mask, x, y):
+				modules[at] = modules[at] ^ 1
 
 
 ## The standard's scoring of how hard a pattern is to scan. Lower is better.
-static func _penalty(modules: Array) -> int:
-	var size := modules.size()
+static func _penalty(modules: PackedByteArray, size: int) -> int:
 	var result := 0
 	var dark := 0
 	for y in size:
-		var row: PackedByteArray = modules[y]
-		result += _line_penalty(row)
-		for x in size:
-			dark += row[x]
+		result += _line_penalty(modules.slice(y * size, (y + 1) * size))
 	for x in size:
 		var column := PackedByteArray()
 		column.resize(size)
 		for y in size:
-			column[y] = (modules[y] as PackedByteArray)[x]
+			column[y] = modules[y * size + x]
 		result += _line_penalty(column)
+	for at in modules.size():
+		dark += modules[at]
 	for y in size - 1:
-		var a: PackedByteArray = modules[y]
-		var b: PackedByteArray = modules[y + 1]
 		for x in size - 1:
-			if a[x] == a[x + 1] and a[x] == b[x] and a[x] == b[x + 1]:
+			var v := modules[y * size + x]
+			if v == modules[y * size + x + 1] and v == modules[(y + 1) * size + x] and v == modules[(y + 1) * size + x + 1]:
 				result += PENALTY_BLOCK
 	var total := size * size
 	var k := int(ceil(absf(float(dark) * 20.0 - float(total) * 10.0) / float(total))) - 1
