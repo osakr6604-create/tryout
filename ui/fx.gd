@@ -136,6 +136,6 @@ func _draw() -> void:
 		var k := float(w["life"]) / float(w["max"])
 		var pop := Look.ease_back(minf(1.0, (1.0 - k) * 5.0))
 		var c: Color = w["color"]
-		Look.text_shadow_c(self, w["kind"], w["pos"], w["text"], int(float(w["size"]) * (0.6 + 0.4 * pop)), Color(c, minf(1.0, k * 2.2)))
+		Look.text_pop_c(self, w["kind"], w["pos"], w["text"], int(w["size"]), 0.6 + 0.4 * pop, Color(c, minf(1.0, k * 2.2)), 4.0)
 	if flash > 0.0:
 		draw_rect(Rect2(-200, -200, 2320, 1480), Color(flash_color, flash))

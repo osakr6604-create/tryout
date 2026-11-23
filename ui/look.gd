@@ -81,6 +81,18 @@ static func text_shadow_c(ci: CanvasItem, kind: StringName, center: Vector2, s: 
 	text_c(ci, kind, center, s, size, color)
 
 
+## Centred text that pops or pulses. The font is always rasterised at
+## [param size]; [param scale] stretches the drawing instead. Changing the font
+## size every frame would make the engine build and keep a new set of glyphs
+## for each size, and that memory is never given back.
+static func text_pop_c(ci: CanvasItem, kind: StringName, center: Vector2, s: String, size: int, scale: float, color: Color, shadow: float = 0.0) -> void:
+	ci.draw_set_transform(center, 0.0, Vector2(scale, scale))
+	if shadow > 0.0:
+		text_c(ci, kind, Vector2(shadow, shadow), s, size, Color(0, 0, 0, 0.55 * color.a))
+	text_c(ci, kind, Vector2.ZERO, s, size, color)
+	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
 ## Wraps [param s] to [param width] and draws it from the top-left corner down.
 ## Returns the height used.
 static func paragraph(ci: CanvasItem, kind: StringName, top_left: Vector2, width: float, s: String, size: int, color: Color, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> float:

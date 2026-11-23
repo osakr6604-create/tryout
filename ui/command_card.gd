@@ -114,7 +114,7 @@ func _draw_band() -> void:
 	Look.text_c(self, &"ui", c + Vector2(0.0, -132.0), _over, 44, Color(Look.DIM, alpha))
 	if mode == Mode.STAMP:
 		var pop := Look.ease_back(clampf(t / 0.2, 0.0, 1.0))
-		Look.text_shadow_c(self, &"display", c + Vector2(0.0, -24.0), _word, int(190.0 * (0.7 + 0.3 * pop)), Color(_color, alpha), 6.0)
+		Look.text_pop_c(self, &"display", c + Vector2(0.0, -24.0), _word, 190, 0.7 + 0.3 * pop, Color(_color, alpha), 6.0)
 		Look.text_c(self, &"head", c + Vector2(-150.0, 112.0), _under, 52, Color(Look.INK, alpha))
 		Look.text(self, &"monox", c + Vector2(Look.measure(&"head", _under, 52).x * 0.5 - 110.0, 132.0), "+%s" % Rating.with_commas(_points), 60, Color(Look.GOLD, alpha))
 	else:
@@ -131,14 +131,13 @@ func _draw_briefing() -> void:
 			continue
 		var pop := Look.ease_back(clampf((t - at) / 0.2, 0.0, 1.0))
 		var color := Look.INK if i < 2 else Look.accent()
-		Look.text_shadow_c(self, &"display", Vector2(960.0, 250.0 + float(i) * 130.0), lines[i], int(124.0 * (0.75 + 0.25 * pop)), color)
+		Look.text_pop_c(self, &"display", Vector2(960.0, 250.0 + float(i) * 130.0), lines[i], 124, 0.75 + 0.25 * pop, color, 4.0)
 	if t > 0.95:
 		Look.text_c(self, &"body", Vector2(960.0, 640.0), "Mouse only. Do what the screen says.", 48, Look.DIM)
 	var count := _countdown()
 	if count > 0:
 		var start := length - 2.1
 		var phase := fmod(t - start, 0.7) / 0.7
-		var size := int(lerpf(300.0, 210.0, Look.ease_out(phase)))
 		Look.ring(self, Vector2(960.0, 850.0), 150.0, 8.0, Color(Look.accent(), 0.25))
 		Look.arc(self, Vector2(960.0, 850.0), 150.0, 8.0, 1.0 - phase, Look.accent())
-		Look.text_shadow_c(self, &"monox", Vector2(960.0, 850.0), str(count), size, Look.INK)
+		Look.text_pop_c(self, &"monox", Vector2(960.0, 850.0), str(count), 300, lerpf(1.0, 0.7, Look.ease_out(phase)), Look.INK, 4.0)

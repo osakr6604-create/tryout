@@ -69,8 +69,11 @@ func _draw() -> void:
 
 	# Right: the running score.
 	Look.text_r(self, &"ui", Vector2(1810.0, 60.0), "SCORE", 36, Look.DIM)
-	var size := int(84.0 + 14.0 * _bump)
-	Look.text_r(self, &"monox", Vector2(1810.0, 136.0), Rating.with_commas(int(round(_score_shown))), size, Look.INK.lerp(Look.GOLD, _bump))
+	# The score bumps on a gain by scaling about its right edge.
+	var grow := 1.0 + 0.16 * _bump
+	draw_set_transform(Vector2(1810.0, 136.0), 0.0, Vector2(grow, grow))
+	Look.text_r(self, &"monox", Vector2.ZERO, Rating.with_commas(int(round(_score_shown))), 84, Look.INK.lerp(Look.GOLD, _bump))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	# Under the play area: the rule in one line, and a live readout.
 	Look.text(self, &"body", Vector2(112.0, 1046.0), hint, 42, Look.DIM)

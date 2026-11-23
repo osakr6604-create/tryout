@@ -63,7 +63,10 @@ async function main() {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const port = server.address().port;
   const profile = mkdtempSync(join(tmpdir(), "tryout-web-check-"));
-  const url = `http://127.0.0.1:${port}/index.html?autoplay&mute&soak-log&skill=0.8`;
+  // A second argument checks a published copy instead of the local build.
+  const base = process.argv[3] || `http://127.0.0.1:${port}/index.html`;
+  const url = `${base}?autoplay&mute&soak-log&skill=0.8`;
+  console.log(`checking ${base}`);
   const browser = spawn(chrome, [
     "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
     "--no-first-run", "--no-default-browser-check", "--window-size=1280,720",

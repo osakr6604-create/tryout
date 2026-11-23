@@ -15,6 +15,13 @@ var rng: RandomNumberGenerator
 var cursor: Vector2 = Vector2.ZERO
 var presses: int = 0
 
+## Normally the bot tells the drill directly where the pointer is and when it
+## clicks. Set these two and it hands both to the caller instead, which lets
+## the game turn them into real mouse events and so test the same path a
+## person's mouse takes.
+var move_through: Callable = Callable()
+var press_through: Callable = Callable()
+
 # One planned move: where from, where to, when it starts and when it lands.
 var _from: Vector2 = Vector2.ZERO
 var _to: Vector2 = Vector2.ZERO
@@ -73,7 +80,19 @@ func step(dt: float) -> void:
 		&"clutch":
 			_clutch()
 	_motion()
-	model.move(cursor)
+	if move_through.is_valid():
+		move_through.call(cursor)
+	else:
+		model.move(cursor)
+
+
+func _click() -> void:
+	presses += 1
+	if press_through.is_valid():
+		press_through.call(cursor)
+	else:
+		model.move(cursor)
+		model.press(cursor)
 
 
 # ---- how a person moves ----
@@ -134,9 +153,7 @@ func _motion() -> void:
 	if k >= 1.0 and model.t >= _press_at:
 		_has_move = false
 		if _press_on_land and _still_worth_clicking():
-			presses += 1
-			model.move(cursor)
-			model.press(cursor)
+			_click()
 
 
 ## The thing the click was meant for may have gone by the time the hand lands.
@@ -197,15 +214,13 @@ func _react() -> void:
 		ReactModel.Phase.WAIT:
 			if _false_start_at > 0.0 and m.phase_t >= _false_start_at:
 				_false_start_at = -1.0
-				presses += 1
-				m.press(cursor)
+				_click()
 		ReactModel.Phase.GO:
 			if _react_at < 0.0:
 				_react_at = reaction()
 			if m.phase_t >= _react_at:
 				_react_at = 99.0
-				presses += 1
-				m.press(cursor)
+				_click()
 
 
 func _holdfire() -> void:
@@ -251,11 +266,9 @@ func _lasthit() -> void:
 	var gold_for := (Tuning.LASTHIT_KILL_ZONE - hp) * float(pick["drain"])
 	if plan["early"] and hp <= Tuning.LASTHIT_KILL_ZONE + 0.1 and hp > Tuning.LASTHIT_KILL_ZONE:
 		plan["early"] = false
-		presses += 1
-		m.press(cursor)
+		_click()
 	elif gold_for >= float(plan["latency"]):
-		presses += 1
-		m.press(cursor)
+		_click()
 		_thresholds.erase(key)
 
 

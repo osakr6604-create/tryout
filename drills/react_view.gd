@@ -89,7 +89,7 @@ func _paint() -> void:
 			Look.text_c(self, &"display", center + Vector2(0.0, -330.0), "NOW!", 130, Look.HOT)
 		ReactModel.Phase.SHOW:
 			var pop := _pop(time - _shown_at, 0.16)
-			Look.text_shadow_c(self, &"monox", center + Vector2(0.0, -330.0), _message, int(120.0 * pop), _message_color)
+			Look.text_pop_c(self, &"monox", center + Vector2(0.0, -330.0), _message, 120, pop, _message_color, 4.0)
 
 	# The trials so far, as chips along the bottom.
 	var chip := Vector2(250.0, 74.0)

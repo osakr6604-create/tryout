@@ -65,6 +65,14 @@ func hover(pos: Vector2) -> void:
 	_hover = pos
 
 
+## Where an on-screen key is: a letter or digit, "back" or "done".
+func key_rect(action: String) -> Rect2:
+	for k in _keys:
+		if str(k["action"]) == action:
+			return k["rect"]
+	return Rect2()
+
+
 func press(pos: Vector2) -> void:
 	if not _open:
 		return

@@ -37,6 +37,7 @@ var board_window: Window
 
 # Launch flags used by the tests, the soak run and the capture tools.
 var _autoplay: bool = false
+var _through_input: bool = false    ## the demo player sends real mouse events instead of calling the drill
 var _skill: float = 0.75
 var _forced_seed: int = -1
 var _shot_dir: String = ""
@@ -47,6 +48,7 @@ var _quit_after: float = -1.0
 var _quit_after_runs: int = -1
 var _clock: float = 0.0
 var _open_menu_at: float = -1.0
+var _click_sent: bool = false
 var _window_placed: bool = false
 var _soak_log: bool = false
 var _attract_hold: float = 1.2
@@ -66,7 +68,8 @@ const DEMO_TAGS: Array[String] = [
 
 func _ready() -> void:
 	randomize()
-	_autoplay = Config.has_flag("autoplay")
+	_through_input = Config.has_flag("autoplay-input")
+	_autoplay = Config.has_flag("autoplay") or _through_input
 	_skill = Config.flag_float("skill", 0.75)
 	_forced_seed = Config.flag_int("seed", -1)
 	_shot_dir = Config.flag("shots")
@@ -242,7 +245,12 @@ func _process(delta: float) -> void:
 		match state:
 			State.ATTRACT:
 				if _autoplay and state_t > _attract_hold:
-					_start_run()
+					if _through_input:
+						if not _click_sent:
+							_click_sent = true
+							_send_click(Attract.START_RECT.get_center())
+					else:
+						_start_run()
 			State.BRIEFING:
 				if card.finished():
 					_next_drill()
@@ -258,7 +266,10 @@ func _process(delta: float) -> void:
 				if _autoplay:
 					_autoplay_tag(delta)
 			State.REPORT:
-				if report.expired() or (_autoplay and state_t > _report_hold):
+				if _through_input and state_t > _report_hold and not _click_sent and not _last_run():
+					_click_sent = true
+					_send_click(Report.NEXT_RECT.get_center())
+				elif report.expired() or (_autoplay and state_t > _report_hold and (not _through_input or _last_run())):
 					_leave_report()
 
 		# A player who walks away mid-run must not block the booth.
@@ -271,7 +282,34 @@ func _process(delta: float) -> void:
 func _set_state(next: State) -> void:
 	state = next
 	state_t = 0.0
+	_click_sent = false
 	_log_event({"state": STATE_NAMES[next]})
+
+
+func _last_run() -> bool:
+	return _quit_after_runs > 0 and runs_finished >= _quit_after_runs
+
+
+## A real mouse move, sent through the engine's input system. The position is
+## given in the game's 1920 x 1080 frame and converted to window pixels, the
+## same units the operating system reports.
+func _send_motion(pos: Vector2) -> void:
+	var event := InputEventMouseMotion.new()
+	event.position = get_viewport().get_final_transform() * pos
+	event.global_position = event.position
+	Input.parse_input_event(event)
+
+
+## A real left click: button down, then up.
+func _send_click(pos: Vector2) -> void:
+	_send_motion(pos)
+	for pressed: bool in [true, false]:
+		var event := InputEventMouseButton.new()
+		event.button_index = MOUSE_BUTTON_LEFT
+		event.pressed = pressed
+		event.position = get_viewport().get_final_transform() * pos
+		event.global_position = event.position
+		Input.parse_input_event(event)
 
 
 ## Writes one line to the event log when a capture asked for one. The video
@@ -289,6 +327,9 @@ func _log_event(data: Dictionary) -> void:
 ## With the demo player at the controls, the tag is typed a key at a time the
 ## way a person would, or a numbered one is used when none was given.
 func _autoplay_tag(delta: float) -> void:
+	if _through_input:
+		_autoplay_tag_by_mouse(delta)
+		return
 	if _typed_tag == "":
 		if state_t > 1.4:
 			_on_tag_submitted("BOT%03d" % (randi() % 1000))
@@ -359,6 +400,9 @@ func _next_drill() -> void:
 		# With a fixed seed the demo player repeats exactly, so a take can be re-recorded.
 		var bot_seed := hash([_forced_seed, session.index, "bot"]) if _forced_seed >= 0 else int(randi())
 		bot = DrillBot.create(model, _skill, bot_seed)
+		if _through_input:
+			bot.move_through = _send_motion
+			bot.press_through = _send_click
 	pointer = pointer.clamp(Vector2.ZERO, SCREEN)
 	hud.visible = true
 	hud.running = false
@@ -382,10 +426,12 @@ func _begin_play() -> void:
 
 
 func _tick_play(delta: float) -> void:
-	if bot != null:
+	if bot != null and not _through_input:
 		bot.step(delta)
 		pointer = bot.cursor
 	else:
+		if bot != null:
+			bot.step(delta)    # its moves and clicks arrive below as mouse events
 		model.move(pointer)
 	model.advance(delta)
 	view.handle(model.take_events())
@@ -423,6 +469,7 @@ func _enter_tag() -> void:
 	backdrop.set_mood(Look.accent(), 0.3)
 	var place := Board.data.rank_for_score(session.total(), Leaderboard.Scope.TODAY, Board.today())
 	tag_entry.open(session.total(), session.grade(), place)
+	_type_in = 0.0
 	Sfx.music(&"music_attract")
 	_set_state(State.TAG)
 
@@ -442,12 +489,14 @@ func _on_tag_submitted(raw: String) -> void:
 	runs_finished += 1
 	_log_event({"report": tag, "total": session.total(), "grade": session.grade(), "role": session.role(), "place": place})
 	if _soak_log:
-		print("soak run=%d score=%d nodes=%d objects=%d orphans=%d static_mb=%.2f" % [
+		print("soak run=%d score=%d nodes=%d objects=%d orphans=%d static_mb=%.2f texture_mb=%.2f process_mb=%.1f" % [
 			runs_finished, session.total(),
 			int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
 			int(Performance.get_monitor(Performance.OBJECT_COUNT)),
 			int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)),
 			Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
+			Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0,
+			float(OS.get_static_memory_peak_usage()) / 1048576.0,
 		])
 	_set_state(State.REPORT)
 
@@ -474,6 +523,23 @@ func _clear_drill() -> void:
 	model = null
 	if fx != null:
 		fx.clear()
+
+
+## The same, but by clicking the on-screen keys with real mouse events.
+func _autoplay_tag_by_mouse(delta: float) -> void:
+	if state_t < 1.0:
+		return
+	_type_in -= delta
+	if _type_in > 0.0:
+		return
+	_type_in = 0.25
+	var want := _typed_tag if _typed_tag != "" else "MOUSE7"
+	var next := "done" if tag_entry.text.length() >= want.length() else want[tag_entry.text.length()]
+	var rect := tag_entry.key_rect(next)
+	if rect.size.x > 0.0:
+		_send_click(rect.get_center())
+	if next == "done":
+		_type_in = 99.0
 
 
 # ---- input ----
@@ -508,7 +574,7 @@ func _press(pos: Vector2) -> void:
 		State.ATTRACT:
 			_start_run()
 		State.PLAY:
-			if bot == null and view != null:
+			if (bot == null or _through_input) and view != null:
 				view.pointer_pressed(pos)
 		State.TAG:
 			tag_entry.press(pos)
