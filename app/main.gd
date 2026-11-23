@@ -11,6 +11,7 @@ enum State { ATTRACT, BRIEFING, CARD, PLAY, FLASH, TAG, REPORT }
 
 const SCREEN := Vector2(1920.0, 1080.0)
 const WINDOWED_SIZE := Vector2i(1280, 720)
+const MAX_DEMO_ENTRIES := 200     ## each one is a whole simulated run, so the flag is capped
 const STATE_NAMES: Array[String] = ["attract", "briefing", "card", "play", "flash", "tag", "report"]
 
 var state: State = State.ATTRACT
@@ -74,7 +75,10 @@ func _ready() -> void:
 	_autoplay = Config.has_flag("autoplay") or _through_input
 	_skill = Config.flag_float("skill", 0.75)
 	_forced_seed = Config.flag_int("seed", -1)
-	_shot_dir = Config.flag("shots")
+	# The capture flags write files, so they only apply to a desktop build.
+	# In a browser the flags come from the address bar and anyone can type one.
+	var desktop := not OS.has_feature("web")
+	_shot_dir = Config.flag("shots") if desktop else ""
 	_shot_every = Config.flag_float("shot-every", 1.0)
 	_quit_after = Config.flag_float("quit-after", -1.0)
 	_quit_after_runs = Config.flag_int("quit-after-runs", -1)
@@ -84,17 +88,17 @@ func _ready() -> void:
 	_attract_hold = Config.flag_float("attract-hold", 1.2)
 	_report_hold = Config.flag_float("report-hold", Report.T_READY + 3.0)
 	_typed_tag = Config.flag("tag")
-	_board_seq_dir = Config.flag("board-seq")
+	_board_seq_dir = Config.flag("board-seq") if desktop else ""
 	if _board_seq_dir != "":
 		DirAccess.make_dir_recursive_absolute(_board_seq_dir)
-	if Config.has_flag("event-log"):
+	if desktop and Config.has_flag("event-log"):
 		_event_log = FileAccess.open(Config.flag("event-log"), FileAccess.WRITE)
 	if Config.has_flag("menu") or Config.has_flag("menu-test"):
 		_open_menu_at = 0.6
 	if Config.has_flag("menu-test"):
 		_menu_test_step = 0
 	if Config.has_flag("demo-board"):
-		_fill_demo_board(Config.flag_int("demo-board", 12))
+		_fill_demo_board(clampi(Config.flag_int("demo-board", 12), 0, MAX_DEMO_ENTRIES))
 
 	if Config.has_flag("board-only"):
 		add_child(BoardScreen.new())
