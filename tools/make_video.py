@@ -370,7 +370,10 @@ def main() -> None:
     ])
     parts.append(still("end", end, 6.0, music, 0.0))
 
-    concat(parts, OUT)
+    joined = WORK / "joined.mp4"
+    concat(parts, joined)
+    # One loudness for the whole video, so the quiet cards and the loud drills sit together.
+    run(["-i", str(joined), "-c:v", "copy", "-af", "loudnorm=I=-15:TP=-1.5:LRA=11", *AUDIO_OUT, "-movflags", "+faststart", str(OUT)])
     probe = subprocess.run([FF, "-hide_banner", "-i", str(OUT)], capture_output=True, text=True).stderr
     length = next((line.strip() for line in probe.splitlines() if "Duration" in line), "")
     print(f"wrote {OUT}")

@@ -6,6 +6,8 @@ Tryout is a mini game for esports event booths. A fan walks up, clicks once, pla
 
 Built for the Cloud9 x JetBrains "Sky's The Limit" Hackathon 2026, Category 3 (Event Mini Game).
 
+![Tryout in play](media/tryout.gif)
+
 ![The attract screen](media/screenshots/attract.png)
 
 ## Play it
@@ -49,7 +51,7 @@ A QR code on the report gives each player their own card to keep. The card trave
 - **Works with no Wi-Fi.** Scores are one small local file, saved through a temporary file with a backup of the last good copy.
 - **Clean names on the big screen.** Tags are filtered before they are shown.
 - **A menu for the crew.** Volume, screens, export to a spreadsheet, reset the board. Destructive buttons need a second click.
-- **Your event's name and colour** from a small settings file, without rebuilding.
+- **Your event's name, colour and logo** from a small settings file, without rebuilding.
 - **An attract screen that plays itself.** A built-in demo player runs the real drills live, so the booth is never showing a still image.
 
 The crew guide is in [docs/BOOTH.md](docs/BOOTH.md).
@@ -62,9 +64,10 @@ Godot 4.7, GDScript, one codebase for Windows, Linux and the browser.
 
 The rules of each drill live in a small class with no nodes, no rendering and no clock of its own (`drills/*_model.gd`). The game feeds a model real frames and real clicks; the tests and the demo player feed it from a loop. That split is what makes the rest possible:
 
-- **Tests** (`bash tools/test.sh`): 100 headless tests over the scoring curves, each drill's rules, the rating, the leaderboard, the tag filter and the QR code.
+- **Tests** (`bash tools/test.sh`): 112 headless tests over the scoring curves, each drill's rules, the rating, the leaderboard and its file on disk, the tag filter and the QR code.
 - **A demo player** (`bots/drill_bot.gd`) that plays like a person at a chosen skill level: it needs time to notice things, moves the pointer along a smooth path that takes longer for far or small targets, and misses more at low skill. It runs the attract screen, and the tests use it to check that better play always scores higher.
-- **A soak test** (`bash tools/soak.sh 1000`): plays whole sessions back to back with the real scene tree and checks that the tree, the object count and the memory did not grow.
+- **A soak test** (`bash tools/soak.sh 1000`): plays whole sessions back to back with the real scene tree and checks that the tree, the object count and the memory did not grow. `bash tools/soak.sh 60 render` does the same with the real renderer, which also covers font and texture memory.
+- **A mouse check** (`bash tools/input-check.sh`): the demo player sends real mouse events through the engine's input system, so the start button, the drills, the on-screen keyboard and the booth menu are all exercised the way a person's mouse would.
 - **A browser check** (`node tools/web-check.mjs`): plays the web build in headless Chrome and fails on any page error.
 - **A QR code generator** (`core/qr.gd`) written for this project, with its output pinned to codes that were decoded by an independent reader.
 
