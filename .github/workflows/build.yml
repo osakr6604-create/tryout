@@ -41,6 +41,10 @@ jobs:
       - name: Tests
         run: bash tools/test.sh
 
+      - name: The scoring page matches the game
+        run: |
+          "$GODOT_BIN" --headless --path . --script res://dev/scoring_doc.gd -- --check
+
       - name: Soak (150 sessions back to back)
         run: bash tools/soak.sh 150
 

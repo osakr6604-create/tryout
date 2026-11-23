@@ -71,7 +71,7 @@ The rules of each drill live in a small class with no nodes, no rendering and no
 - **A browser check** (`node tools/web-check.mjs`): plays the web build in headless Chrome and fails on any page error.
 - **A QR code generator** (`core/qr.gd`) written for this project, with its output pinned to codes that were decoded by an independent reader.
 
-All balance numbers are in one file, `core/tuning.gd`. The difficulty was tuned against the demo player at six skill levels (`dev/balance.gd` prints the table). It has not been tuned on a crowd of real players yet; a booth can adjust that one file.
+All balance numbers are in one file, `core/tuning.gd`. [docs/SCORING.md](docs/SCORING.md) explains every curve, grade and role in plain words; it is generated from that file and CI fails if the two disagree. The difficulty was tuned against the demo player at six skill levels (`dev/balance.gd` prints the table). It has not been tuned on a crowd of real players yet; a booth can adjust that one file.
 
 Every sound is generated from code by `dev/bake_audio.gd`. All shapes are drawn from code. The only third-party assets are two open fonts.
 
