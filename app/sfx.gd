@@ -7,6 +7,7 @@ extends Node
 
 const FOLDER := "res://assets/audio/"
 const VOICES := 12
+const EFFECTS_TRIM_DB := -4.0     ## headroom, so stacked effects stay clean
 
 var _streams: Dictionary = {}        ## name -> AudioStream (or null when the file is missing)
 var _players: Array[AudioStreamPlayer] = []
@@ -24,6 +25,11 @@ func _ready() -> void:
 		_players.append(p)
 	_music = AudioStreamPlayer.new()
 	add_child(_music)
+	# Several effects can land on the same frame as the music. A limiter on the
+	# output keeps those moments from clipping on the booth speakers.
+	var limiter := AudioEffectHardLimiter.new()
+	limiter.ceiling_db = -1.5
+	AudioServer.add_bus_effect(AudioServer.get_bus_index("Master"), limiter)
 	apply_volume()
 
 
@@ -52,7 +58,7 @@ func play(sound: StringName, pitch: float = 1.0, volume_db: float = 0.0) -> void
 	_next = (_next + 1) % VOICES
 	p.stream = stream
 	p.pitch_scale = clampf(pitch, 0.25, 4.0)
-	p.volume_db = volume_db
+	p.volume_db = volume_db + EFFECTS_TRIM_DB
 	p.play()
 
 
