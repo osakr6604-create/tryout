@@ -36,7 +36,7 @@ done
 godot_import
 
 LOG="$(mktemp)"
-run_godot_isolated --path "$PROJECT_PATH" --resolution 1280x720 --position 60,60 -- \
+run_godot_isolated --path "$PROJECT_PATH" -- \
 	--windowed --mute $AUTOPLAY "--shots=$(win_path "$OUT")" "--shot-every=$EVERY" "--quit-after=$LENGTH" "${EXTRA[@]}" 2>&1 | tee "$LOG"
 CODE=${PIPESTATUS[0]}
 if grep -qE "SCRIPT ERROR|Parse Error|Failed to load script|Compile Error" "$LOG"; then

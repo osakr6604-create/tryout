@@ -70,7 +70,7 @@ func _draw() -> void:
 		Look.text(self, &"monox", Vector2(x0, base), "%2d" % (i + 1), size, rank_color)
 		Look.text(self, &"head", Vector2(x0 + width * 0.12, base), str(e["tag"]), size, Look.INK)
 		if show_roles:
-			Look.text(self, &"ui", Vector2(x0 + width * 0.5, base), str(e["role"]), int(float(size) * 0.72), Look.DIM)
+			Look.text(self, &"ui", Vector2(x0 + width * 0.47, base), str(e["role"]), int(float(size) * 0.68), Look.DIM)
 		var grade := str(e["grade"])
-		Look.text(self, &"display", Vector2(x0 + width * 0.71, base), grade, size, Look.grade_color(grade))
+		Look.text(self, &"display", Vector2(x0 + width * 0.73, base), grade, size, Look.grade_color(grade))
 		Look.text_r(self, &"monox", Vector2(x1, base), Rating.with_commas(int(e["score"])), size, Look.INK)

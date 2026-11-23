@@ -40,9 +40,10 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	Look.text(self, &"display", Vector2(70.0, 150.0), "TRYOUT", 150, Look.INK)
+	var after := 70.0 + Look.measure(&"display", "TRYOUT", 150).x + 44.0
 	var sub := Config.event_name.to_upper() if Config.event_name != "" else "THINK YOU COULD GO PRO?"
-	Look.text(self, &"head", Vector2(480.0, 104.0), sub, 60, Look.accent())
-	Look.text(self, &"body", Vector2(482.0, 150.0), "60 seconds. 8 drills. One scouting report.", 40, Look.DIM)
+	Look.text(self, &"head", Vector2(after, 100.0), sub, 60, Look.accent())
+	Look.text(self, &"body", Vector2(after + 2.0, 148.0), "60 seconds. 8 drills. One scouting report.", 40, Look.DIM)
 
 	var side := Rect2(1300.0, 200.0, 550.0, 810.0)
 	_draw_live(Rect2(side.position, Vector2(side.size.x, 380.0)))
@@ -59,7 +60,7 @@ func _draw_live(rect: Rect2) -> void:
 	if not playing:
 		Look.text(self, &"head", Vector2(x, rect.position.y + 190.0), "YOU'RE UP.", 96, Look.accent())
 		Look.text(self, &"body", Vector2(x, rect.position.y + 250.0), "Step up and click to start.", 42, Look.DIM)
-		var best := Board.data.best_score(Leaderboard.Scope.TODAY, Board.today())
+		var best := Board.best_today()
 		if best > 0:
 			Look.text(self, &"body", Vector2(x, rect.position.y + 322.0), "Score to beat today: %s" % Rating.with_commas(best), 42, Look.GOLD)
 		return
@@ -70,7 +71,7 @@ func _draw_live(rect: Rect2) -> void:
 		Look.panel(self, pip, Look.accent() if i < index else (Look.INK if i == index else Look.FAINT), 8)
 	Look.text(self, &"ui", Vector2(x, rect.position.y + 262.0), "SCORE SO FAR", 34, Look.DIM)
 	Look.text(self, &"monox", Vector2(x, rect.position.y + 344.0), Rating.with_commas(int(live.get("score", 0))), 92, Look.INK)
-	var best := Board.data.best_score(Leaderboard.Scope.TODAY, Board.today())
+	var best := Board.best_today()
 	if best > 0:
 		Look.text_r(self, &"body", Vector2(rect.end.x - 34.0, rect.position.y + 340.0), "to beat: %s" % Rating.with_commas(best), 36, Look.GOLD)
 

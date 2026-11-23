@@ -124,7 +124,7 @@ func _trim() -> void:
 
 
 func to_text() -> String:
-	return JSON.stringify({"version": VERSION, "next_id": next_id, "entries": entries}, "\t")
+	return JSON.stringify({"version": VERSION, "next_id": next_id, "entries": entries})
 
 
 ## Loads from saved text. Returns false and leaves the board empty when the

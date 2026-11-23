@@ -9,10 +9,11 @@
 # Fails when the scene tree grew, when stray nodes appeared, or when objects
 # or memory kept climbing after the first sessions.
 set -uo pipefail
+RUNS="${1:-300}"
+# About 1.5 seconds a session, with room to spare.
+export GODOT_RUN_LIMIT="${GODOT_RUN_LIMIT:-$(( 300 + RUNS * 4 ))}"
 source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
 
-RUNS="${1:-300}"
-GODOT_RUN_LIMIT="${GODOT_RUN_LIMIT:-3600}"
 godot_import
 
 LOG="$(mktemp)"

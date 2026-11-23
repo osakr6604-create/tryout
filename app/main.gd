@@ -10,6 +10,7 @@ extends Node2D
 enum State { ATTRACT, BRIEFING, CARD, PLAY, FLASH, TAG, REPORT }
 
 const SCREEN := Vector2(1920.0, 1080.0)
+const WINDOWED_SIZE := Vector2i(1280, 720)
 const STATE_NAMES: Array[String] = ["attract", "briefing", "card", "play", "flash", "tag", "report"]
 
 var state: State = State.ATTRACT
@@ -18,7 +19,7 @@ var session: Session
 var model: DrillModel
 var view: DrillView
 var bot: DrillBot                 ## set when the bot is playing instead of a person
-var pointer: Vector2 = SCREEN * 0.5
+var pointer: Vector2 = Vector2(840.0, 800.0)   ## until the mouse moves: beside the start button
 var idle: float = 0.0
 var runs_finished: int = 0
 
@@ -46,7 +47,15 @@ var _quit_after: float = -1.0
 var _quit_after_runs: int = -1
 var _clock: float = 0.0
 var _open_menu_at: float = -1.0
+var _window_placed: bool = false
 var _soak_log: bool = false
+var _attract_hold: float = 1.2
+var _report_hold: float = Report.T_READY + 3.0
+var _typed_tag: String = ""
+var _type_in: float = 0.0
+var _event_log: FileAccess
+var _board_seq_dir: String = ""
+var _board_seq_count: int = 0
 
 const DEMO_TAGS: Array[String] = [
 	"NOVA", "KITE", "ZEPHYR", "MOXIE", "PIXEL", "RIVET", "ECHO", "VANTA", "JUNO", "ORBIT",
@@ -67,6 +76,14 @@ func _ready() -> void:
 	if _shot_dir != "":
 		DirAccess.make_dir_recursive_absolute(_shot_dir)
 	_soak_log = Config.has_flag("soak-log")
+	_attract_hold = Config.flag_float("attract-hold", 1.2)
+	_report_hold = Config.flag_float("report-hold", Report.T_READY + 3.0)
+	_typed_tag = Config.flag("tag")
+	_board_seq_dir = Config.flag("board-seq")
+	if _board_seq_dir != "":
+		DirAccess.make_dir_recursive_absolute(_board_seq_dir)
+	if Config.has_flag("event-log"):
+		_event_log = FileAccess.open(Config.flag("event-log"), FileAccess.WRITE)
 	if Config.has_flag("menu"):
 		_open_menu_at = 0.6
 	if Config.has_flag("demo-board"):
@@ -132,9 +149,24 @@ func _apply_display() -> void:
 	if OS.has_feature("web"):
 		return
 	var window := get_window()
+	if Config.has_flag("offscreen"):
+		# Recording: a full-size borderless window parked beside the desktop,
+		# so a capture never covers what the person at the PC is doing.
+		window.mode = Window.MODE_WINDOWED
+		window.borderless = true
+		window.size = Vector2i(1920, 1080)
+		window.position = Vector2i(DisplayServer.screen_get_size().x + 80, 0)
+		_sync_board_window()
+		return
 	var want_mode := Window.MODE_FULLSCREEN if Config.fullscreen else Window.MODE_WINDOWED
-	if window.mode != want_mode:
+	if window.mode != want_mode or not _window_placed:
 		window.mode = want_mode
+		if want_mode == Window.MODE_WINDOWED:
+			# A window two thirds the size of the frame, centred on its screen.
+			var screen := DisplayServer.screen_get_usable_rect(window.current_screen)
+			window.size = WINDOWED_SIZE
+			window.position = screen.position + (screen.size - WINDOWED_SIZE) / 2
+		_window_placed = true
 	if Config.low_latency:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 		Engine.max_fps = 480
@@ -177,6 +209,10 @@ func _sync_board_window() -> void:
 		add_child(board_window)
 	board_window.current_screen = want
 	board_window.mode = Window.MODE_WINDOWED if want == main_screen else Window.MODE_FULLSCREEN
+	if Config.has_flag("offscreen"):
+		board_window.borderless = true
+		board_window.size = Vector2i(960, 540)
+		board_window.position = Vector2i(DisplayServer.screen_get_size().x + 80, 1200)
 
 
 func _on_board_window_closed() -> void:
@@ -205,7 +241,7 @@ func _process(delta: float) -> void:
 	if not operator.is_open:
 		match state:
 			State.ATTRACT:
-				if _autoplay and state_t > 1.2:
+				if _autoplay and state_t > _attract_hold:
 					_start_run()
 			State.BRIEFING:
 				if card.finished():
@@ -219,10 +255,10 @@ func _process(delta: float) -> void:
 				if card.finished():
 					_after_flash()
 			State.TAG:
-				if _autoplay and state_t > 1.4:
-					_on_tag_submitted("BOT%03d" % (randi() % 1000))
+				if _autoplay:
+					_autoplay_tag(delta)
 			State.REPORT:
-				if report.expired() or (_autoplay and state_t > Report.T_READY + 3.0):
+				if report.expired() or (_autoplay and state_t > _report_hold):
 					_leave_report()
 
 		# A player who walks away mid-run must not block the booth.
@@ -235,6 +271,46 @@ func _process(delta: float) -> void:
 func _set_state(next: State) -> void:
 	state = next
 	state_t = 0.0
+	_log_event({"state": STATE_NAMES[next]})
+
+
+## Writes one line to the event log when a capture asked for one. The video
+## tools use it to place captions on the exact frame something happened.
+func _log_event(data: Dictionary) -> void:
+	if _event_log == null:
+		return
+	data["t"] = snappedf(_clock, 0.001)
+	if model != null:
+		data["drill"] = String(model.id)
+	_event_log.store_line(JSON.stringify(data))
+	_event_log.flush()
+
+
+## With the demo player at the controls, the tag is typed a key at a time the
+## way a person would, or a numbered one is used when none was given.
+func _autoplay_tag(delta: float) -> void:
+	if _typed_tag == "":
+		if state_t > 1.4:
+			_on_tag_submitted("BOT%03d" % (randi() % 1000))
+		return
+	if state_t < 1.0:
+		return
+	_type_in -= delta
+	if _type_in > 0.0:
+		return
+	_type_in = 0.2
+	if tag_entry.text.length() < _typed_tag.length():
+		var event := InputEventKey.new()
+		event.keycode = KEY_UNKNOWN
+		event.unicode = _typed_tag.unicode_at(tag_entry.text.length())
+		event.pressed = true
+		tag_entry.key(event)
+	else:
+		_type_in = 99.0
+		var enter := InputEventKey.new()
+		enter.keycode = KEY_ENTER
+		enter.pressed = true
+		tag_entry.key(enter)
 
 
 func _enter_attract() -> void:
@@ -278,7 +354,11 @@ func _next_drill() -> void:
 	stage.move_child(view, 0)
 	view.bind(model, fx)
 	view.frozen = true
-	bot = DrillBot.create(model, _skill, int(randi())) if _autoplay else null
+	bot = null
+	if _autoplay:
+		# With a fixed seed the demo player repeats exactly, so a take can be re-recorded.
+		var bot_seed := hash([_forced_seed, session.index, "bot"]) if _forced_seed >= 0 else int(randi())
+		bot = DrillBot.create(model, _skill, bot_seed)
 	pointer = pointer.clamp(Vector2.ZERO, SCREEN)
 	hud.visible = true
 	hud.running = false
@@ -323,6 +403,7 @@ func _finish_drill() -> void:
 	hud.set_score(session.total())
 	hud.running = false
 	card.show_stamp(result, session.total() - before, Tuning.FLASH_SECONDS)
+	_log_event({"result": result.stamp(), "score": snappedf(result.score, 0.1), "headline": result.headline, "total": session.total()})
 	Board.set_live({"state": "playing", "drill": mini(session.index, Session.drill_count() - 1), "title": model.title, "score": session.total()})
 	_set_state(State.FLASH)
 
@@ -359,6 +440,7 @@ func _on_tag_submitted(raw: String) -> void:
 	attract.board.highlight_id = int(entry["id"])
 	Board.set_live({"state": "report", "tag": tag, "score": session.total()})
 	runs_finished += 1
+	_log_event({"report": tag, "total": session.total(), "grade": session.grade(), "role": session.role(), "place": place})
 	if _soak_log:
 		print("soak run=%d score=%d nodes=%d objects=%d orphans=%d static_mb=%.2f" % [
 			runs_finished, session.total(),
@@ -471,6 +553,11 @@ func _capture(delta: float) -> void:
 	if _quit_after > 0.0 and _clock >= _quit_after:
 		get_tree().quit()
 		return
+	# Every other frame of the leaderboard window, for the two-screen shots in the video.
+	if _board_seq_dir != "" and board_window != null and Engine.get_frames_drawn() % 2 == 0:
+		var frame := "%s/b_%05d.png" % [_board_seq_dir, _board_seq_count]
+		_board_seq_count += 1
+		board_window.get_texture().get_image().save_png(frame)
 	if _shot_dir == "":
 		return
 	_shot_in -= delta
