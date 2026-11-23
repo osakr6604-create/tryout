@@ -48,6 +48,8 @@ var _quit_after: float = -1.0
 var _quit_after_runs: int = -1
 var _clock: float = 0.0
 var _open_menu_at: float = -1.0
+var _menu_test_step: int = -1
+var _menu_test_t: float = 0.0
 var _click_sent: bool = false
 var _window_placed: bool = false
 var _soak_log: bool = false
@@ -87,8 +89,10 @@ func _ready() -> void:
 		DirAccess.make_dir_recursive_absolute(_board_seq_dir)
 	if Config.has_flag("event-log"):
 		_event_log = FileAccess.open(Config.flag("event-log"), FileAccess.WRITE)
-	if Config.has_flag("menu"):
+	if Config.has_flag("menu") or Config.has_flag("menu-test"):
 		_open_menu_at = 0.6
+	if Config.has_flag("menu-test"):
+		_menu_test_step = 0
 	if Config.has_flag("demo-board"):
 		_fill_demo_board(Config.flag_int("demo-board", 12))
 
@@ -240,6 +244,9 @@ func _process(delta: float) -> void:
 	if _open_menu_at > 0.0 and _clock >= _open_menu_at:
 		_open_menu_at = -1.0
 		operator.open()
+
+	if _menu_test_step >= 0:
+		_menu_test(delta)
 
 	if not operator.is_open:
 		match state:
@@ -523,6 +530,26 @@ func _clear_drill() -> void:
 	model = null
 	if fx != null:
 		fx.clear()
+
+
+## A check for the tools: works the booth menu with real mouse clicks (export,
+## clear today with its second click, a volume step, back) and prints what
+## happened, so the menu's click path is covered without a person.
+func _menu_test(delta: float) -> void:
+	const PLAN: Array = [[0.5, "export"], [1.0, "reset_today"], [1.5, "reset_today"], [2.0, "music"], [2.5, "resume"]]
+	if not operator.is_open and _menu_test_step == 0:
+		return   # not opened yet
+	_menu_test_t += delta
+	if _menu_test_step < PLAN.size():
+		if _menu_test_t >= float(PLAN[_menu_test_step][0]):
+			_send_click(operator.button_rect(str(PLAN[_menu_test_step][1])).get_center())
+			_menu_test_step += 1
+	elif _menu_test_t >= 3.2:
+		print("menu-test exported=%s today=%d music=%.2f open=%s" % [
+			str(operator.last_export != "" and FileAccess.file_exists(operator.last_export)),
+			Board.count_today(), Config.music_volume, str(operator.is_open),
+		])
+		_menu_test_step = -1
 
 
 ## The same, but by clicking the on-screen keys with real mouse events.

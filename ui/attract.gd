@@ -110,6 +110,8 @@ func _draw() -> void:
 	Look.panel(self, Rect2(110.0, 112.0, chip_w, 62.0), Color(Look.accent(), 0.16), 31, Color(Look.accent(), 0.8), 2)
 	Look.text(self, &"ui", Vector2(138.0, 157.0), label, 38, Look.accent())
 
+	Look.logo(self, Rect2(660.0, 100.0, 350.0, 86.0))
+
 	# The title, with a coloured echo behind it.
 	Look.text(self, &"display", Vector2(121.0, 461.0), "TRYOUT", 330, Color(Look.PINK, 0.55))
 	Look.text(self, &"display", Vector2(101.0, 447.0), "TRYOUT", 330, Color(Look.accent(), 0.7))

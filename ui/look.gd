@@ -93,6 +93,18 @@ static func text_pop_c(ci: CanvasItem, kind: StringName, center: Vector2, s: Str
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
+## Draws the booth's logo, if one was set, fitted inside [param box] and
+## pushed to its right edge.
+static func logo(ci: CanvasItem, box: Rect2) -> void:
+	var tex := Config.logo
+	if tex == null:
+		return
+	var size := tex.get_size()
+	var fit := minf(box.size.x / size.x, box.size.y / size.y)
+	var drawn := size * fit
+	ci.draw_texture_rect(tex, Rect2(Vector2(box.end.x - drawn.x, box.position.y + (box.size.y - drawn.y) * 0.5), drawn), false)
+
+
 ## Wraps [param s] to [param width] and draws it from the top-left corner down.
 ## Returns the height used.
 static func paragraph(ci: CanvasItem, kind: StringName, top_left: Vector2, width: float, s: String, size: int, color: Color, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> float:

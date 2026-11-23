@@ -5,7 +5,7 @@ Everything a booth crew needs, in the order they will need it.
 ## What you need
 
 - A Windows 10 or 11 PC or laptop. Anything that can play a video will do; the game draws simple shapes.
-- A mouse and a mouse mat. A touch screen works too.
+- A mouse and a mouse mat. A touch screen should work too, because taps arrive as clicks, but it has not been tried on touch hardware yet.
 - Optional: a second screen facing the crowd for the leaderboard.
 - No internet. Nothing in the game talks to a network.
 
@@ -13,7 +13,7 @@ Everything a booth crew needs, in the order they will need it.
 
 1. Copy the `windows` folder anywhere on the PC.
 2. Double-click `Tryout.exe`. It opens full screen on the attract screen.
-3. If a second screen is plugged in, the leaderboard opens on it by itself.
+3. If a second screen is plugged in, the leaderboard opens on it by itself. If it does not, press F1 and pick the screen under "Leaderboard window".
 
 Windows may warn about an unknown publisher the first time, because the build is not code signed. Choose "More info", then "Run anyway".
 
@@ -45,7 +45,7 @@ Press **F1** or **Esc**. Opening the menu ends any run in progress, so use it be
 
 ## Settings without the menu
 
-Copy `booth.example.cfg` to `booth.cfg` next to `Tryout.exe` and edit it in Notepad. You can set the event name shown on screen, the lead colour, how long the report stays up, whether the QR code is shown and where it points, and kiosk mode. The file explains each line.
+Copy `booth.example.cfg` to `booth.cfg` next to `Tryout.exe` and edit it in Notepad. You can set the event name and logo shown on screen, the lead colour, how long the report stays up, whether the QR code is shown and where it points, and kiosk mode. The file explains each line.
 
 ## The leaderboard
 
@@ -65,6 +65,7 @@ To use your own page, set `card_url` in `booth.cfg`. To hide the code, set `show
 - Turn off sleep and screen saver in Windows power settings.
 - Turn on Do Not Disturb so notifications stay off the screen.
 - Plug the laptop in.
+- The game cannot block Alt+Tab or the Windows key. For a station nobody is watching, use Windows assigned access (kiosk mode) with Tryout as the app.
 - At the end of the day, use "Export scores to a spreadsheet" if you run a prize draw.
 
 ## Trying it before the event

@@ -45,6 +45,8 @@ func _draw() -> void:
 	Look.text(self, &"head", Vector2(after, 100.0), sub, 60, Look.accent())
 	Look.text(self, &"body", Vector2(after + 2.0, 148.0), "60 seconds. 8 drills. One scouting report.", 40, Look.DIM)
 
+	Look.logo(self, Rect2(1430.0, 50.0, 420.0, 110.0))
+
 	var side := Rect2(1300.0, 200.0, 550.0, 810.0)
 	_draw_live(Rect2(side.position, Vector2(side.size.x, 380.0)))
 	_draw_last(Rect2(side.position + Vector2(0.0, 410.0), Vector2(side.size.x, 400.0)))

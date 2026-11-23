@@ -20,7 +20,8 @@ var music_volume: float = 0.5
 var card_url: String = "https://osakr6604-create.github.io/tryout/card/"
 var show_qr: bool = true
 var accent: Color = Color("2EC5FF")
-var logo_path: String = ""             ## optional PNG next to the executable
+var logo_path: String = ""             ## optional PNG or JPG next to the executable
+var logo: Texture2D                    ## the loaded logo, or null
 
 var flags: Dictionary = {}             ## launch flags, e.g. {"windowed": "true", "seed": "7"}
 
@@ -30,10 +31,29 @@ func _ready() -> void:
 	if not OS.has_feature("web") and not OS.has_feature("editor"):
 		_read(OS.get_executable_path().get_base_dir().path_join(LOCAL_FILE))
 	_parse_flags()
+	if has_flag("logo"):
+		logo_path = flag("logo")
+	_load_logo()
 	if has_flag("windowed"):
 		fullscreen = false
 	if has_flag("mute"):
 		master_volume = 0.0
+
+
+## The event's own logo, shown in a corner of the attract and leaderboard
+## screens. A file name is looked up next to the executable.
+func _load_logo() -> void:
+	logo = null
+	if logo_path == "":
+		return
+	var path := logo_path
+	if path.is_relative_path() and not path.begins_with("res://"):
+		path = OS.get_executable_path().get_base_dir().path_join(path)
+	var image := Image.new()
+	if image.load(path) != OK:
+		push_warning("The logo could not be loaded: %s" % path)
+		return
+	logo = ImageTexture.create_from_image(image)
 
 
 func _parse_flags() -> void:

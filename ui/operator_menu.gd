@@ -16,6 +16,7 @@ var is_open: bool = false
 var _buttons: Array[Dictionary] = []    ## {rect, id}
 var _confirm: String = ""
 var _confirm_left: float = 0.0
+var last_export: String = ""     ## where the last spreadsheet export went
 var _message: String = ""
 var _message_left: float = 0.0
 var _hover: Vector2 = Vector2.ZERO
@@ -73,9 +74,32 @@ func _board_label() -> String:
 	return "SCREEN %d" % (Config.board_screen + 1)
 
 
+## Works out where the panel and each button sit. Drawing and clicking both
+## go through here, so a click never depends on a frame having been drawn.
+func _layout() -> Rect2:
+	var items := _items()
+	var height := 160.0 + float(items.size()) * ROW + 64.0
+	var panel := Rect2(960.0 - WIDTH * 0.5, 540.0 - height * 0.5, WIDTH, height)
+	_buttons.clear()
+	for i in items.size():
+		var rect := Rect2(panel.position.x + 36.0, panel.position.y + 120.0 + float(i) * ROW, WIDTH - 72.0, ROW - 10.0)
+		_buttons.append({"rect": rect, "id": str(items[i]["id"])})
+	return panel
+
+
+## Where a button is, by its id ("export", "reset_today", ...).
+func button_rect(id: String) -> Rect2:
+	_layout()
+	for b in _buttons:
+		if str(b["id"]) == id:
+			return b["rect"]
+	return Rect2()
+
+
 func press(pos: Vector2) -> void:
 	if not is_open:
 		return
+	_layout()
 	for b in _buttons:
 		if (b["rect"] as Rect2).has_point(pos):
 			_do(str(b["id"]))
@@ -120,8 +144,8 @@ func _do(id: String) -> void:
 			Config.low_latency = not Config.low_latency
 			display_changed.emit()
 		"export":
-			var path := Board.export_csv()
-			_say("Saved to %s" % path if path != "" else "Could not write the file")
+			last_export = Board.export_csv()
+			_say("Saved to %s" % last_export if last_export != "" else "Could not write the file")
 		"reset_today":
 			_say("Removed %d scores from today" % Board.reset_today())
 		"reset_all":
@@ -158,20 +182,17 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	draw_rect(Rect2(0, 0, 1920, 1080), Color(0, 0, 0, 0.72))
 	var items := _items()
-	var height := 160.0 + float(items.size()) * ROW + 64.0
-	var panel := Rect2(960.0 - WIDTH * 0.5, 540.0 - height * 0.5, WIDTH, height)
+	var panel := _layout()
 	Look.panel(self, panel, Color(0.05, 0.08, 0.17, 0.98), 30, Color(Look.accent(), 0.7), 3)
 	Look.text(self, &"display", panel.position + Vector2(44.0, 86.0), "BOOTH MENU", 76, Look.INK)
 	var info := "Tryout %s" % str(ProjectSettings.get_setting("application/config/version"))
 	Look.text_r(self, &"body", Vector2(panel.end.x - 44.0, panel.position.y + 60.0), info, 32, Look.DIM)
 	Look.text_r(self, &"body", Vector2(panel.end.x - 44.0, panel.position.y + 98.0), "F1 or Esc closes this menu", 30, Look.DIM)
 
-	_buttons.clear()
 	for i in items.size():
 		var item := items[i]
 		var id := str(item["id"])
-		var rect := Rect2(panel.position.x + 36.0, panel.position.y + 120.0 + float(i) * ROW, WIDTH - 72.0, ROW - 10.0)
-		_buttons.append({"rect": rect, "id": id})
+		var rect: Rect2 = _buttons[i]["rect"]
 		var danger := bool(item.get("danger", false))
 		var confirming := _confirm == id
 		var over := rect.has_point(_hover)

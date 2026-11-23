@@ -44,11 +44,24 @@ jobs:
       - name: Soak (150 sessions back to back)
         run: bash tools/soak.sh 150
 
+      - name: Mouse and menu paths, through real input events
+        run: bash tools/input-check.sh
+
       - name: Export Windows, Linux and Web
         run: bash tools/export.sh
 
+      - name: Run the exported Linux build (3 sessions, no display)
+        run: |
+          chmod +x build/linux/Tryout.x86_64
+          XDG_DATA_HOME="$RUNNER_TEMP/tryout-home" build/linux/Tryout.x86_64 --headless --fixed-fps 60 -- \
+            --autoplay --mute --soak-log --quit-after-runs=3 | tee "$RUNNER_TEMP/linux-run.log"
+          test "$(grep -c '^soak run=' "$RUNNER_TEMP/linux-run.log")" -eq 3
+
       - name: Assemble the site
         run: bash tools/build-site.sh
+
+      - name: Play the web build in headless Chrome (2 sessions)
+        run: node tools/web-check.mjs 2
 
       - name: Zip the desktop builds
         run: |
